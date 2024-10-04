@@ -131,7 +131,7 @@ const Menu = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-skyLight"
+                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-mSkyLight"
                 >
                   <Image
                     src={item.icon}
