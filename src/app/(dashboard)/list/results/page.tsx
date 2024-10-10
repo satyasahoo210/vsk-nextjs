@@ -2,13 +2,12 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role, resultsData } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Prisma, Result, Student } from "@prisma/client";
+import { role, userId } from "@/lib/utils";
+import { Prisma, Role } from "@prisma/client";
 import moment from "moment";
 import Image from "next/image";
-import Link from "next/link";
 
 type ResultList = {
   id: number;
@@ -50,16 +49,18 @@ const columns = [
     accessor: "date",
     className: "hidden md:table-cell",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN, Role.TEACHER] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
-const renderRow = (item: ResultList) => {
+const _renderRow = (item: ResultList, extra: Record<string, unknown>) => {
   return (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.title}</td>
+      <td className="flex items-center gap-4 py-4">{item.title}</td>
       <td>{item.studentName}</td>
       <td className="hidden md:table-cell">{item.score}</td>
       <td className="hidden md:table-cell">{item.teacherName}</td>
@@ -69,9 +70,14 @@ const renderRow = (item: ResultList) => {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {([Role.ADMIN, Role.TEACHER] as Role[]).includes(role) && (
             <>
-              <FormModal table="result" type="update" data={item} />
+              <FormModal
+                table="result"
+                type="update"
+                data={item}
+                extra={extra}
+              />
               <FormModal table="result" type="delete" id={item.id} />
             </>
           )}
@@ -115,6 +121,26 @@ const ResultListPage = async ({
           break;
       }
     }
+  }
+
+  // ROLE CONDITIONS
+  switch (role) {
+    case Role.ADMIN:
+      break;
+    case Role.TEACHER:
+      whereQuery.OR = [
+        { exam: { lesson: { teacherId: userId } } },
+        { assignment: { lesson: { teacherId: userId } } },
+      ];
+      break;
+    case Role.STUDENT:
+      whereQuery.studentId = userId;
+      break;
+    case Role.PARENT:
+      whereQuery.student = {
+        parentId: userId,
+      };
+      break;
   }
 
   const [dataResp, count] = await prisma.$transaction([
@@ -164,8 +190,50 @@ const ResultListPage = async ({
       className: item.lesson.class.name,
       startTime: isExam ? item.startTime : item.startDate,
       isExam: isExam,
+
+      examId: isExam ? item.id : null,
+      assignmentId: isExam ? null : item.id,
+      studentId: d.studentId,
     };
   });
+
+  let exams: { id: number; title: string }[] = [];
+  let students: { id: string; firstName: string; lastName: string | null }[] =
+    [];
+  let assignments: { id: number; title: string }[] = [];
+
+  if (([Role.ADMIN] as Role[]).includes(role)) {
+    [exams, assignments, students] = await prisma.$transaction([
+      prisma.exam.findMany({
+        select: { id: true, title: true },
+      }),
+      prisma.assignment.findMany({
+        select: { id: true, title: true },
+      }),
+      prisma.student.findMany({
+        select: { id: true, firstName: true, lastName: true },
+      }),
+    ]);
+  }
+
+  if (([Role.TEACHER] as Role[]).includes(role)) {
+    [exams, assignments, students] = await prisma.$transaction([
+      prisma.exam.findMany({
+        where: { lesson: { teacherId: userId } },
+        select: { id: true, title: true },
+      }),
+      prisma.assignment.findMany({
+        where: { lesson: { teacherId: userId } },
+        select: { id: true, title: true },
+      }),
+      prisma.student.findMany({
+        select: { id: true, firstName: true, lastName: true },
+      }),
+    ]);
+  }
+
+  const renderRow = (item: ResultList) =>
+    _renderRow(item, { exams, assignments, students });
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -176,12 +244,18 @@ const ResultListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="result" type="create" />}
+            {([Role.ADMIN, Role.TEACHER] as Role[]).includes(role) && (
+              <FormModal
+                table="result"
+                type="create"
+                extra={{ exams, assignments, students }}
+              />
+            )}
           </div>
         </div>
       </div>

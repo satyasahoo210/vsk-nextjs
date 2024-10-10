@@ -2,31 +2,38 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import Image from "next/image";
+import { SignInSchema } from "@/lib/definitions";
+import type { SignInSchemaType } from "@/lib/definitions";
+import { signIn, useSession } from "next-auth/react";
+import { useEffect } from "react";
 
-const schema = z.object({
-  username: z.string().min(1, { message: "Username is required" }),
-  password: z.string(),
-});
-
-type Inputs = z.infer<typeof schema>;
-
-const SignInForm = () => {
+const SignInForm = ({ redirect }: { redirect: (path: string) => void }) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Inputs>({ resolver: zodResolver(schema) });
+  } = useForm<SignInSchemaType>({ resolver: zodResolver(SignInSchema) });
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    signIn("credentials", {
+      redirect: false,
+      ...data,
+    });
   });
+
+  const { data } = useSession();
+
+  useEffect(() => {
+    if (data?.user) {
+      redirect("/" + data.user.role.toLowerCase());
+    }
+  }, [data, redirect]);
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-bold flex items-center gap-2">
-        <Image src="/logo.png" alt="VSK Logo" width={24} height={24} />
+        <Image src="/images/logo.png" alt="VSK Logo" width={24} height={24} />
         VSK
       </h1>
       <h2 className="text-gray-400">Sign in to your Account</h2>

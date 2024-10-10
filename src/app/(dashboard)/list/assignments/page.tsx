@@ -2,10 +2,17 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role, assignmentsData } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Assignment, Class, Prisma, Subject, Teacher } from "@prisma/client";
+import { role, userId } from "@/lib/utils";
+import {
+  Assignment,
+  Class,
+  Prisma,
+  Role,
+  Subject,
+  Teacher,
+} from "@prisma/client";
 import moment from "moment";
 import Image from "next/image";
 
@@ -15,12 +22,18 @@ type AssignmentList = Assignment & {
 
 const columns = [
   {
+    header: "Title",
+    accessor: "title",
+  },
+  {
     header: "Subject",
     accessor: "subjectName",
+    className: "hidden md:table-cell",
   },
   {
     header: "Class",
     accessor: "class",
+    className: "hidden md:table-cell",
   },
   {
     header: "Teacher",
@@ -32,18 +45,19 @@ const columns = [
     accessor: "due_date",
     className: "hidden md:table-cell",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN, Role.TEACHER] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
-const renderRow = (item: AssignmentList) => {
+const _renderRow = (item: AssignmentList, extra: Record<string, unknown>) => {
   return (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">
-        {item.lesson.subject.name}
-      </td>
+      <td className="flex items-center gap-4 py-4">{item.title}</td>
+      <td className="hidden md:table-cell">{item.lesson.subject.name}</td>
       <td className="hidden md:table-cell">{item.lesson.class.name}</td>
       <td className="hidden md:table-cell">{item.lesson.teacher.firstName}</td>
       <td className="hidden md:table-cell">
@@ -58,9 +72,14 @@ const renderRow = (item: AssignmentList) => {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {([Role.ADMIN, Role.TEACHER] as Role[]).includes(role) && (
             <>
-              <FormModal table="assignment" type="update" data={item} />
+              <FormModal
+                table="assignment"
+                type="update"
+                data={item}
+                extra={extra}
+              />
               <FormModal table="assignment" type="delete" id={item.id} />
             </>
           )}
@@ -109,6 +128,39 @@ const AssignmentListPage = async ({
     }
   }
 
+  // ROLE CONDITIONS
+  switch (role) {
+    case Role.ADMIN:
+      break;
+    case Role.TEACHER:
+      whereQuery.lesson = {
+        teacherId: userId,
+      };
+      break;
+    case Role.STUDENT:
+      whereQuery.lesson = {
+        class: {
+          students: {
+            some: {
+              id: userId,
+            },
+          },
+        },
+      };
+      break;
+    case Role.PARENT:
+      whereQuery.lesson = {
+        class: {
+          students: {
+            some: {
+              parentId: userId,
+            },
+          },
+        },
+      };
+      break;
+  }
+
   const [data, count] = await prisma.$transaction([
     prisma.assignment.findMany({
       where: whereQuery,
@@ -127,6 +179,22 @@ const AssignmentListPage = async ({
     prisma.assignment.count({ where: whereQuery }),
   ]);
 
+  let lessons: {
+    name: string;
+    id: number;
+  }[] = [];
+
+  if (([Role.ADMIN, Role.TEACHER] as Role[]).includes(role)) {
+    lessons = await prisma.lesson.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+  }
+
+  const renderRow = (item: AssignmentList) => _renderRow(item, { lessons });
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -138,12 +206,14 @@ const AssignmentListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="assignment" type="create" />}
+            {([Role.ADMIN, Role.TEACHER] as Role[]).includes(role) && (
+              <FormModal table="assignment" type="create" extra={{ lessons }} />
+            )}
           </div>
         </div>
       </div>

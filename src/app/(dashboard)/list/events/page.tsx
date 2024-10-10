@@ -2,13 +2,12 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role, eventsData } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Class, Event, Prisma } from "@prisma/client";
+import { role, userId } from "@/lib/utils";
+import { Class, Event, Prisma, Role } from "@prisma/client";
 import moment from "moment";
 import Image from "next/image";
-import Link from "next/link";
 
 type EventList = Event & { class: Class };
 
@@ -37,17 +36,19 @@ const columns = [
     accessor: "endTime",
     className: "hidden md:table-cell",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
-const renderRow = (item: EventList) => {
+const _renderRow = (item: EventList, extra: Record<string, unknown>) => {
   return (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.title}</td>
-      <td className="hidden md:table-cell">{item.class.name}</td>
+      <td className="flex items-center gap-4 py-4">{item.title}</td>
+      <td className="hidden md:table-cell">{item.class?.name ?? "-"}</td>
       <td className="hidden md:table-cell">
         {moment(item.startDate).format("L")}
       </td>
@@ -59,9 +60,14 @@ const renderRow = (item: EventList) => {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {role === Role.ADMIN && (
             <>
-              <FormModal table="event" type="update" data={item} />
+              <FormModal
+                table="event"
+                type="update"
+                data={item}
+                extra={extra}
+              />
               <FormModal table="event" type="delete" id={item.id} />
             </>
           )}
@@ -101,6 +107,30 @@ const EventListPage = async ({
     }
   }
 
+  // ROLE CONDITIONS
+  switch (role) {
+    case Role.ADMIN:
+      break;
+    case Role.TEACHER:
+      whereQuery.OR = [
+        { classId: null },
+        { class: { lessons: { some: { teacherId: userId } } } },
+      ];
+      break;
+    case Role.STUDENT:
+      whereQuery.OR = [
+        { classId: null },
+        { class: { students: { some: { id: userId } } } },
+      ];
+      break;
+    case Role.PARENT:
+      whereQuery.OR = [
+        { classId: null },
+        { class: { students: { some: { parentId: userId } } } },
+      ];
+      break;
+  }
+
   const [data, count] = await prisma.$transaction([
     prisma.event.findMany({
       where: whereQuery,
@@ -113,6 +143,19 @@ const EventListPage = async ({
     prisma.event.count({ where: whereQuery }),
   ]);
 
+  let classes: {
+    name: string;
+    id: number;
+  }[] = [];
+
+  if (([Role.ADMIN] as Role[]).includes(role)) {
+    classes = await prisma.class.findMany({
+      select: { id: true, name: true },
+    });
+  }
+
+  const renderRow = (item: EventList) => _renderRow(item, { classes });
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -122,12 +165,14 @@ const EventListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="event" type="create" />}
+            {role === Role.ADMIN && (
+              <FormModal table="event" type="create" extra={{ classes }} />
+            )}
           </div>
         </div>
       </div>

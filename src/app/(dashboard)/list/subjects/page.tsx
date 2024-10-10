@@ -2,10 +2,10 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Prisma, Subject, Teacher } from "@prisma/client";
+import { role } from "@/lib/utils";
+import { Prisma, Role, Subject, Teacher } from "@prisma/client";
 import Image from "next/image";
 
 type SubjectList = Subject & { teachers: Teacher[] };
@@ -20,24 +20,31 @@ const columns = [
     accessor: "teachers",
     className: "hidden md:table-cell",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
-const renderRow = (item: SubjectList) => {
+const _renderRow = (item: SubjectList, extra: Record<string, unknown>) => {
   return (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.name}</td>
+      <td className="flex items-center gap-4 py-4">{item.name}</td>
       <td className="hidden md:table-cell">
         {item.teachers.map((t) => t.firstName).join(", ")}
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {role === Role.ADMIN && (
             <>
-              <FormModal table="subject" type="update" data={item} />
+              <FormModal
+                table="subject"
+                type="update"
+                data={item}
+                extra={extra}
+              />
               <FormModal table="subject" type="delete" id={item.id} />
             </>
           )}
@@ -87,6 +94,17 @@ const SubjectListPage = async ({
     prisma.subject.count({ where: whereQuery }),
   ]);
 
+  let teachers: { id: string; firstName: string; lastName: string | null }[] =
+    [];
+
+  if (([Role.ADMIN, Role.TEACHER] as Role[]).includes(role)) {
+    teachers = await prisma.teacher.findMany({
+      select: { id: true, firstName: true, lastName: true },
+    });
+  }
+
+  const renderRow = (item: SubjectList) => _renderRow(item, { teachers });
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -96,12 +114,14 @@ const SubjectListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="subject" type="create" />}
+            {role === Role.ADMIN && (
+              <FormModal table="subject" type="create" extra={{ teachers }} />
+            )}
           </div>
         </div>
       </div>

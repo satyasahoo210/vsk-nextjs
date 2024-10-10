@@ -16,10 +16,10 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
-  secret    String
+  secret    String   @db.Text
   role      Role
-  createdAt DateTime @default(now())
-  isActive  Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+  isActive  Boolean  @map("is_active")
 }
 
 model Admin {
@@ -30,22 +30,22 @@ model Admin {
 model Student {
   id         String   @id
   username   String   @unique
-  firstName  String
-  lastName   String?
+  firstName  String   @map("first_name")
+  lastName   String?  @map("last_name")
   email      String?  @unique
   phone      String?  @unique
-  address    String?
+  address    String?  @db.Text
   img        String?
-  bloodGroup String?
+  bloodGroup String?  @map("blood_group")
   gender     Gender
   birthday   DateTime
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  parentId    String
+  parentId    String       @map("parent_id")
   parent      Parent       @relation(fields: [parentId], references: [id])
-  classId     Int
+  classId     Int          @map("class_id")
   class       Class        @relation(fields: [classId], references: [id])
-  gradeId     Int
+  gradeId     Int          @map("grade_id")
   grade       Grade        @relation(fields: [gradeId], references: [id])
   attendances Attendance[]
   results     Result[]
@@ -54,13 +54,13 @@ model Student {
 model Parent {
   id        String   @id
   username  String   @unique
-  firstName String
-  lastName  String?
+  firstName String   @map("first_name")
+  lastName  String?  @map("last_name")
   email     String?  @unique
   phone     String   @unique
   address   String?
   img       String?
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   students Student[]
 }
@@ -68,16 +68,16 @@ model Parent {
 model Teacher {
   id         String   @id
   username   String   @unique
-  firstName  String
-  lastName   String?
+  firstName  String   @map("first_name")
+  lastName   String?  @map("last_name")
   email      String?  @unique
   phone      String?  @unique
   address    String?
   img        String?
-  bloodGroup String?
+  bloodGroup String?  @map("blood_group")
   gender     Gender
   birthday   DateTime
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @map("created_at")
 
   subjects Subject[]
   lessons  Lesson[]
@@ -97,9 +97,9 @@ model Class {
   name     String @unique
   capacity Int
 
-  supervisorId  String?
+  supervisorId  String?        @map("supervisor_id")
   supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
-  gradeId       Int
+  gradeId       Int            @map("grade_id")
   grade         Grade          @relation(fields: [gradeId], references: [id])
   lessons       Lesson[]
   students      Student[]
@@ -119,14 +119,14 @@ model Lesson {
   id        Int      @id @default(autoincrement())
   name      String
   day       Day
-  startTime DateTime
-  endTime   DateTime
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
 
-  subjectId   Int
+  subjectId   Int          @map("subject_id")
   subject     Subject      @relation(fields: [subjectId], references: [id])
-  classId     Int
+  classId     Int          @map("class_id")
   class       Class        @relation(fields: [classId], references: [id])
-  teacherId   String
+  teacherId   String       @map("teacher_id")
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
   exams       Exam[]
   assignments Assignment[]
@@ -136,10 +136,10 @@ model Lesson {
 model Exam {
   id        Int      @id @default(autoincrement())
   title     String
-  startTime DateTime
-  endTime   DateTime
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
 
-  lessonId Int
+  lessonId Int      @map("lesson_id")
   lesson   Lesson   @relation(fields: [lessonId], references: [id])
   results  Result[]
 }
@@ -147,10 +147,10 @@ model Exam {
 model Assignment {
   id        Int      @id @default(autoincrement())
   title     String
-  startDate DateTime
-  endDate   DateTime
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
 
-  lessonId Int
+  lessonId Int      @map("lesson_id")
   lesson   Lesson   @relation(fields: [lessonId], references: [id])
   results  Result[]
 }
@@ -159,11 +159,11 @@ model Result {
   id    Int @id @default(autoincrement())
   score Int
 
-  examId       Int?
+  examId       Int?        @map("exam_id")
   exam         Exam?       @relation(fields: [examId], references: [id])
-  assignmentId Int?
+  assignmentId Int?        @map("assignment_id")
   assignment   Assignment? @relation(fields: [assignmentId], references: [id])
-  studentId    String
+  studentId    String      @map("student_id")
   student      Student     @relation(fields: [studentId], references: [id])
 }
 
@@ -172,9 +172,9 @@ model Attendance {
   date    DateTime
   present Boolean
 
-  studentId String
+  studentId String  @map("student_id")
   student   Student @relation(fields: [studentId], references: [id])
-  lessonId  Int
+  lessonId  Int     @map("lesson_id")
   lesson    Lesson  @relation(fields: [lessonId], references: [id])
 }
 
@@ -182,10 +182,10 @@ model Event {
   id          Int      @id @default(autoincrement())
   title       String
   description String?
-  startDate   DateTime
-  endDate     DateTime
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
 
-  classId Int?
+  classId Int?   @map("class_id")
   class   Class? @relation(fields: [classId], references: [id])
 }
 
@@ -195,7 +195,7 @@ model Announcement {
   description String?
   date        DateTime
 
-  classId Int?
+  classId Int?   @map("class_id")
   class   Class? @relation(fields: [classId], references: [id])
 }
 

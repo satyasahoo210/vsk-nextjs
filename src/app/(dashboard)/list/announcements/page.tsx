@@ -2,13 +2,12 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role, announcementsData } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Announcement, Class, Prisma } from "@prisma/client";
+import { role } from "@/lib/utils";
+import { Announcement, Class, Prisma, Role } from "@prisma/client";
 import moment from "moment";
 import Image from "next/image";
-import Link from "next/link";
 
 type AnnouncementList = Announcement & { class: Class };
 
@@ -27,23 +26,30 @@ const columns = [
     accessor: "date",
     className: "hidden md:table-cell",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
-const renderRow = (item: AnnouncementList) => {
+const _renderRow = (item: AnnouncementList, extra: Record<string, unknown>) => {
   return (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.title}</td>
-      <td className="hidden md:table-cell">{item.class.name}</td>
+      <td className="flex items-center gap-4 py-4">{item.title}</td>
+      <td className="hidden md:table-cell">{item.class?.name ?? "-"}</td>
       <td className="hidden md:table-cell">{moment(item.date).format("L")}</td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {role === Role.ADMIN && (
             <>
-              <FormModal table="announcement" type="update" data={item} />
+              <FormModal
+                table="announcement"
+                type="update"
+                data={item}
+                extra={extra}
+              />
               <FormModal table="announcement" type="delete" id={item.id} />
             </>
           )}
@@ -95,22 +101,44 @@ const AnnouncementListPage = async ({
     prisma.announcement.count({ where: whereQuery }),
   ]);
 
+  let classes: {
+    name: string;
+    id: number;
+  }[] = [];
+
+  if (([Role.ADMIN] as Role[]).includes(role)) {
+    classes = await prisma.class.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+  }
+
+  const renderRow = (item: AnnouncementList) => _renderRow(item, { classes });
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
       <div className="flex justify-between items-center">
-        <h1 className="hidden text-lg font-semibold md:block">All Events</h1>
+        <h1 className="hidden text-lg font-semibold md:block">
+          All Announcement
+        </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && (
-              <FormModal table="announcement" type="create" />
+            {role === Role.ADMIN && (
+              <FormModal
+                table="announcement"
+                type="create"
+                extra={{ classes }}
+              />
             )}
           </div>
         </div>

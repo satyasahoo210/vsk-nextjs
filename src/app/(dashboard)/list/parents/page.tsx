@@ -2,10 +2,10 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Parent, Prisma, Student } from "@prisma/client";
+import { role } from "@/lib/utils";
+import { Parent, Prisma, Role, Student } from "@prisma/client";
 import Image from "next/image";
 
 type ParentList = Parent & { students: Student[] };
@@ -19,7 +19,9 @@ const columns = [
   },
   { header: "Phone", accessor: "phone", className: "hidden lg:table-cell" },
   { header: "Address", accessor: "address", className: "hidden lg:table-cell" },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
 const renderRow = (item: ParentList) => {
@@ -28,7 +30,7 @@ const renderRow = (item: ParentList) => {
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">
+      <td className="flex items-center gap-4 py-4">
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.firstName}</h3>
           <p className="text-sm text-gray-500">{item?.email}</p>
@@ -41,7 +43,7 @@ const renderRow = (item: ParentList) => {
       <td className="hidden lg:table-cell">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {role === Role.ADMIN && (
             <>
               <FormModal table="parent" type="update" data={item} />
               <FormModal table="parent" type="delete" id={item.id} />
@@ -102,12 +104,12 @@ const ParentListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="parent" type="create" />}
+            {role === Role.ADMIN && <FormModal table="parent" type="create" />}
           </div>
         </div>
       </div>

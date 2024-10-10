@@ -2,19 +2,23 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role, lessonsData } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
+import { role } from "@/lib/utils";
+import { Class, Lesson, Prisma, Role, Subject, Teacher } from "@prisma/client";
 import Image from "next/image";
-import Link from "next/link";
 
 type LessonList = Lesson & { teacher: Teacher; subject: Subject; class: Class };
 
 const columns = [
   {
+    header: "Name",
+    accessor: "name",
+  },
+  {
     header: "Subject Name",
     accessor: "subjectName",
+    className: "hidden md:table-cell",
   },
   {
     header: "Class",
@@ -25,23 +29,31 @@ const columns = [
     accessor: "teacher",
     className: "hidden md:table-cell",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
-const renderRow = (item: LessonList) => {
+const _renderRow = (item: LessonList, extra: Record<string, unknown>) => {
   return (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
+      <td className="flex items-center gap-4 py-4">{item.name}</td>
+      <td className="hidden md:table-cell">{item.subject.name}</td>
       <td>{item.class.name}</td>
       <td className="hidden md:table-cell">{item.teacher.firstName}</td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {role === Role.ADMIN && (
             <>
-              <FormModal table="lesson" type="update" data={item} />
+              <FormModal
+                table="lesson"
+                type="update"
+                data={item}
+                extra={extra}
+              />
               <FormModal table="lesson" type="delete" id={item.id} />
             </>
           )}
@@ -102,6 +114,28 @@ const LessonListPage = async ({
     prisma.lesson.count({ where: whereQuery }),
   ]);
 
+  let classes: { id: number; name: string }[] = [];
+  let teachers: { id: string; firstName: string; lastName: string | null }[] =
+    [];
+  let subjects: { id: number; name: string }[] = [];
+
+  if (([Role.ADMIN] as Role[]).includes(role)) {
+    [classes, teachers, subjects] = await prisma.$transaction([
+      prisma.class.findMany({
+        select: { id: true, name: true },
+      }),
+      prisma.teacher.findMany({
+        select: { id: true, firstName: true, lastName: true },
+      }),
+      prisma.subject.findMany({
+        select: { id: true, name: true },
+      }),
+    ]);
+  }
+
+  const renderRow = (item: LessonList) =>
+    _renderRow(item, { teachers, classes, subjects });
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -111,12 +145,18 @@ const LessonListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="lesson" type="create" />}
+            {role === Role.ADMIN && (
+              <FormModal
+                table="lesson"
+                type="create"
+                extra={{ teachers, classes, subjects }}
+              />
+            )}
           </div>
         </div>
       </div>

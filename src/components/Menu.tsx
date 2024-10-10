@@ -1,4 +1,5 @@
-import { role } from "@/lib/data";
+import { auth } from "@/auth";
+import { Role } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -7,117 +8,121 @@ const menuItems = [
     title: "MENU",
     items: [
       {
-        icon: "/home.png",
+        icon: "/images/home.png",
         label: "Home",
         href: "/",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
       },
       {
-        icon: "/teacher.png",
+        icon: "/images/teacher.png",
         label: "Teachers",
         href: "/list/teachers",
-        visible: ["admin", "teacher"],
+        visible: [Role.ADMIN, Role.TEACHER],
       },
       {
-        icon: "/student.png",
+        icon: "/images/student.png",
         label: "Students",
         href: "/list/students",
-        visible: ["admin", "teacher"],
+        visible: [Role.ADMIN, Role.TEACHER],
       },
       {
-        icon: "/parent.png",
+        icon: "/images/parent.png",
         label: "Parents",
         href: "/list/parents",
-        visible: ["admin", "teacher"],
+        visible: [Role.ADMIN, Role.TEACHER],
       },
       {
-        icon: "/subject.png",
+        icon: "/images/subject.png",
         label: "Subjects",
         href: "/list/subjects",
-        visible: ["admin"],
+        visible: [Role.ADMIN],
       },
       {
-        icon: "/class.png",
+        icon: "/images/class.png",
         label: "Classes",
         href: "/list/classes",
-        visible: ["admin", "teacher"],
+        visible: [Role.ADMIN, Role.TEACHER],
       },
       {
-        icon: "/lesson.png",
+        icon: "/images/lesson.png",
         label: "Lessons",
         href: "/list/lessons",
-        visible: ["admin", "teacher"],
+        visible: [Role.ADMIN, Role.TEACHER],
       },
       {
-        icon: "/exam.png",
+        icon: "/images/exam.png",
         label: "Exams",
         href: "/list/exams",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
       },
       {
-        icon: "/assignment.png",
+        icon: "/images/assignment.png",
         label: "Assignments",
         href: "/list/assignments",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
       },
       {
-        icon: "/result.png",
+        icon: "/images/result.png",
         label: "Results",
         href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
       },
+      // {
+      //   icon: "/images/attendance.png",
+      //   label: "Attendance",
+      //   href: "/list/attendance",
+      //   visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
+      // },
       {
-        icon: "/attendance.png",
-        label: "Attendance",
-        href: "/list/attendance",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/calendar.png",
+        icon: "/images/calendar.png",
         label: "Events",
         href: "/list/events",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
       },
+      // {
+      //   icon: "/images/message.png",
+      //   label: "Messages",
+      //   href: "/list/messages",
+      //   visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
+      // },
       {
-        icon: "/message.png",
-        label: "Messages",
-        href: "/list/messages",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/announcement.png",
+        icon: "/images/announcement.png",
         label: "Announcements",
         href: "/list/announcements",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
       },
     ],
   },
   {
     title: "OTHER",
     items: [
+      // {
+      //   icon: "/images/profile.png",
+      //   label: "Profile",
+      //   href: "/profile",
+      //   visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
+      // },
+      // {
+      //   icon: "/images/setting.png",
+      //   label: "Settings",
+      //   href: "/settings",
+      //   visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
+      // },
       {
-        icon: "/profile.png",
-        label: "Profile",
-        href: "/profile",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/setting.png",
-        label: "Settings",
-        href: "/settings",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/logout.png",
+        icon: "/images/logout.png",
         label: "Logout",
         href: "/logout",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: [Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT],
       },
     ],
   },
 ];
 
-const Menu = () => {
+const Menu = async () => {
+  const {
+    user: { role },
+  } = (await auth())!!;
+
   return (
     <div className="mt-4 text-sm">
       {menuItems.map(({ title, items }) => (

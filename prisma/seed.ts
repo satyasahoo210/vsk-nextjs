@@ -1,20 +1,47 @@
-import { Day, PrismaClient, Gender } from "@prisma/client"
-const prisma = new PrismaClient()
+import { Day, PrismaClient, Gender, Role } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 async function main() {
   // ADMIN
-  await prisma.admin.create({
-    data: {
-      id: "admin1",
-      username: "admin1",
-    },
-  })
-  await prisma.admin.create({
-    data: {
-      id: "admin2",
-      username: "admin2",
-    },
-  })
+  await prisma.admin
+    .create({
+      data: {
+        id: "admin1",
+        username: "admin1",
+      },
+    })
+    .then((data) =>
+      prisma.user.create({
+        data: {
+          id: data.id,
+          username: data.username,
+          secret:
+            "$2a$12$LZMF/rVW0et9PKpMgqn5L.sCCPD.dxhJLcPnHloPajM5IiO8oHsjO",
+          isActive: true,
+          role: Role.ADMIN,
+        },
+      })
+    );
+  await prisma.admin
+    .create({
+      data: {
+        id: "admin2",
+        username: "admin2",
+      },
+    })
+    .then((data) =>
+      prisma.user.create({
+        data: {
+          id: data.id,
+          username: data.username,
+          secret:
+            "$2a$12$LZMF/rVW0et9PKpMgqn5L.sCCPD.dxhJLcPnHloPajM5IiO8oHsjO",
+          isActive: true,
+          role: Role.ADMIN,
+        },
+      })
+    );
 
   // GRADE
   for (let i = 1; i <= 6; i++) {
@@ -22,7 +49,7 @@ async function main() {
       data: {
         level: i,
       },
-    })
+    });
   }
 
   // CLASS
@@ -33,7 +60,7 @@ async function main() {
         gradeId: i,
         capacity: Math.floor(Math.random() * (20 - 15 + 1)) + 15,
       },
-    })
+    });
   }
 
   // SUBJECT
@@ -48,30 +75,45 @@ async function main() {
     { name: "Biology" },
     { name: "Computer Science" },
     { name: "Art" },
-  ]
+  ];
 
   for (const subject of subjectData) {
-    await prisma.subject.create({ data: subject })
+    await prisma.subject.create({ data: subject });
   }
 
   // TEACHER
   for (let i = 1; i <= 15; i++) {
-    await prisma.teacher.create({
-      data: {
-        id: `teacher${i}`, // Unique ID for the teacher
-        username: `teacher${i}`,
-        firstName: `TName${i}`,
-        lastName: `TSurname${i}`,
-        email: `teacher${i}@example.com`,
-        phone: `123-456-789${i}`,
-        address: `Address${i}`,
-        bloodGroup: "A+",
-        gender: i % 2 === 0 ? Gender.MALE : Gender.FEMALE,
-        subjects: { connect: [{ id: (i % 10) + 1 }] },
-        classes: { connect: [{ id: (i % 6) + 1 }] },
-        birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 30)),
-      },
-    })
+    await prisma.teacher
+      .create({
+        data: {
+          id: `teacher${i}`, // Unique ID for the teacher
+          username: `teacher${i}`,
+          firstName: `TName${i}`,
+          lastName: `TSurname${i}`,
+          email: `teacher${i}@example.com`,
+          phone: `123-456-789${i}`,
+          address: `Address${i}`,
+          bloodGroup: "A+",
+          gender: i % 2 === 0 ? Gender.MALE : Gender.FEMALE,
+          subjects: { connect: [{ id: (i % 10) + 1 }] },
+          classes: { connect: [{ id: (i % 6) + 1 }] },
+          birthday: new Date(
+            new Date().setFullYear(new Date().getFullYear() - 30)
+          ),
+        },
+      })
+      .then((data) =>
+        prisma.user.create({
+          data: {
+            id: data.id,
+            username: data.username,
+            secret:
+              "$2a$12$LZMF/rVW0et9PKpMgqn5L.sCCPD.dxhJLcPnHloPajM5IiO8oHsjO",
+            isActive: true,
+            role: Role.TEACHER,
+          },
+        })
+      );
   }
 
   // LESSON
@@ -80,7 +122,9 @@ async function main() {
       data: {
         name: `Lesson${i}`,
         day: Day[
-          Object.keys(Day)[Math.floor(Math.random() * Object.keys(Day).length)] as keyof typeof Day
+          Object.keys(Day)[
+            Math.floor(Math.random() * Object.keys(Day).length)
+          ] as keyof typeof Day
         ],
         startTime: new Date(new Date().setHours(new Date().getHours() + 1)),
         endTime: new Date(new Date().setHours(new Date().getHours() + 3)),
@@ -88,43 +132,71 @@ async function main() {
         classId: (i % 6) + 1,
         teacherId: `teacher${(i % 15) + 1}`,
       },
-    })
+    });
   }
 
   // PARENT
   for (let i = 1; i <= 25; i++) {
-    await prisma.parent.create({
-      data: {
-        id: `parentId${i}`,
-        username: `parentId${i}`,
-        firstName: `PName ${i}`,
-        lastName: `PSurname ${i}`,
-        email: `parent${i}@example.com`,
-        phone: `123-456-789${i}`,
-        address: `Address${i}`,
-      },
-    })
+    await prisma.parent
+      .create({
+        data: {
+          id: `parentId${i}`,
+          username: `parentId${i}`,
+          firstName: `PName ${i}`,
+          lastName: `PSurname ${i}`,
+          email: `parent${i}@example.com`,
+          phone: `123-456-789${i}`,
+          address: `Address${i}`,
+        },
+      })
+      .then((data) =>
+        prisma.user.create({
+          data: {
+            id: data.id,
+            username: data.username,
+            secret:
+              "$2a$12$LZMF/rVW0et9PKpMgqn5L.sCCPD.dxhJLcPnHloPajM5IiO8oHsjO",
+            isActive: true,
+            role: Role.PARENT,
+          },
+        })
+      );
   }
 
   // STUDENT
   for (let i = 1; i <= 50; i++) {
-    await prisma.student.create({
-      data: {
-        id: `student${i}`,
-        username: `student${i}`,
-        firstName: `SName${i}`,
-        lastName: `SSurname ${i}`,
-        email: `student${i}@example.com`,
-        phone: `987-654-321${i}`,
-        address: `Address${i}`,
-        bloodGroup: "O-",
-        gender: i % 2 === 0 ? Gender.MALE : Gender.FEMALE,
-        parentId: `parentId${Math.ceil(i / 2) % 25 || 25}`,
-        gradeId: (i % 6) + 1,
-        classId: (i % 6) + 1,
-        birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 10)),
-      },
-    })
+    await prisma.student
+      .create({
+        data: {
+          id: `student${i}`,
+          username: `student${i}`,
+          firstName: `SName${i}`,
+          lastName: `SSurname ${i}`,
+          email: `student${i}@example.com`,
+          phone: `987-654-321${i}`,
+          address: `Address${i}`,
+          bloodGroup: "O-",
+          gender: i % 2 === 0 ? Gender.MALE : Gender.FEMALE,
+          parentId: `parentId${Math.ceil(i / 2) % 25 || 25}`,
+          gradeId: (i % 6) + 1,
+          classId: (i % 6) + 1,
+          birthday: new Date(
+            new Date().setFullYear(new Date().getFullYear() - 10)
+          ),
+        },
+      })
+      .then((data) =>
+        prisma.user.create({
+          data: {
+            id: data.id,
+            username: data.username,
+            secret:
+              "$2a$12$LZMF/rVW0et9PKpMgqn5L.sCCPD.dxhJLcPnHloPajM5IiO8oHsjO",
+            isActive: true,
+            role: Role.STUDENT,
+          },
+        })
+      );
   }
 
   // EXAM
@@ -136,7 +208,7 @@ async function main() {
         endTime: new Date(new Date().setHours(new Date().getHours() + 2)),
         lessonId: (i % 30) + 1,
       },
-    })
+    });
   }
 
   // ASSIGNMENT
@@ -148,7 +220,7 @@ async function main() {
         endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
         lessonId: (i % 30) + 1,
       },
-    })
+    });
   }
 
   // RESULT
@@ -159,7 +231,7 @@ async function main() {
         studentId: `student${i}`,
         ...(i <= 5 ? { examId: i } : { assignmentId: i - 5 }),
       },
-    })
+    });
   }
 
   // ATTENDANCE
@@ -171,7 +243,7 @@ async function main() {
         studentId: `student${i}`,
         lessonId: (i % 30) + 1,
       },
-    })
+    });
   }
 
   // EVENT
@@ -184,7 +256,7 @@ async function main() {
         endDate: new Date(new Date().setHours(new Date().getHours() + 2)),
         classId: (i % 5) + 1,
       },
-    })
+    });
   }
 
   // ANNOUNCEMENT
@@ -196,18 +268,18 @@ async function main() {
         date: new Date(),
         classId: (i % 5) + 1,
       },
-    })
+    });
   }
 
-  console.log("Seeding completed successfully.")
+  console.log("Seeding completed successfully.");
 }
 
 main()
   .then(async () => {
-    await prisma.$disconnect()
+    await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error(e)
-    await prisma.$disconnect()
-    process.exit(1)
-  })
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

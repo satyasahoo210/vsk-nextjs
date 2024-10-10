@@ -45,8 +45,8 @@
   .rbc-time-view {
     border-color: #eee !important;
   }
-  
-  .rbc-time-header {
+
+  .rbc-allday-cell {
     display: none !important;
   }
   
@@ -65,6 +65,16 @@
   .rbc-timeslot-group {
     background-color: #f7fdff !important;
   }
+
+  .rbc-time-slot {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .rbc-time-slot:nth-of-type(2) {
+    display: none;
+  }
   
   .rbc-day-slot {
     font-size: 14px !important;
@@ -78,6 +88,10 @@
     width: 99% !important;
   }
   
+  .rbc-event:active {
+    z-index: 1000;
+  }
+
   .rbc-event:nth-child(1) {
     background-color: #e2f8ff !important;
   }
@@ -106,4 +120,8 @@
   .rbc-event-label{
     color: gray !important;
     margin-bottom: 5px;
+  }
+
+  .rbc-current-time-indicator {
+    height: 2px !important;
   }

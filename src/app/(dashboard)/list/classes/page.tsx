@@ -2,10 +2,10 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Class, Grade, Prisma, Teacher } from "@prisma/client";
+import { role } from "@/lib/utils";
+import { Class, Prisma, Role, Teacher } from "@prisma/client";
 import Image from "next/image";
 
 type ClassList = Class & { supervisor: Teacher };
@@ -30,24 +30,31 @@ const columns = [
     accessor: "supervisor",
     className: "hidden md:table-cell",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(([Role.ADMIN] as Role[]).includes(role)
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
-const renderRow = (item: ClassList) => {
+const _renderRow = (item: ClassList, extra: Record<string, unknown>) => {
   return (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-mPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.name}</td>
+      <td className="flex items-center gap-4 py-4">{item.name}</td>
       <td className="hidden md:table-cell">{item.capacity}</td>
       <td className="hidden md:table-cell">{item.name[0]}</td>
       <td className="hidden md:table-cell">{item.supervisor.firstName}</td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {role === Role.ADMIN && (
             <>
-              <FormModal table="class" type="update" data={item} />
+              <FormModal
+                table="class"
+                type="update"
+                data={item}
+                extra={extra}
+              />
               <FormModal table="class" type="delete" id={item.id} />
             </>
           )}
@@ -100,6 +107,26 @@ const ClassListPage = async ({
     prisma.class.count({ where: whereQuery }),
   ]);
 
+  let grades: { id: number; level: number }[] = [];
+  let teachers: {
+    firstName: string;
+    lastName: string | null;
+    id: string;
+  }[] = [];
+
+  if (([Role.ADMIN] as Role[]).includes(role)) {
+    [grades, teachers] = await prisma.$transaction([
+      prisma.grade.findMany({
+        select: { id: true, level: true },
+      }),
+      prisma.teacher.findMany({
+        select: { id: true, firstName: true, lastName: true },
+      }),
+    ]);
+  }
+
+  const renderRow = (item: ClassList) => _renderRow(item, { grades, teachers });
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -109,12 +136,18 @@ const ClassListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+              <Image src="/images/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-mYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+              <Image src="/images/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="class" type="create" />}
+            {role === Role.ADMIN && (
+              <FormModal
+                table="class"
+                type="create"
+                extra={{ grades, teachers }}
+              />
+            )}
           </div>
         </div>
       </div>
