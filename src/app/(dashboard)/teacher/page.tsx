@@ -1,9 +1,11 @@
+import { auth } from "@/auth";
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
-import { userId } from "@/lib/utils";
 import React from "react";
 
-const TeacherPage = () => {
+const TeacherPage = async () => {
+  const { userId } = (await auth())!!;
+
   return (
     <div className="p-4 flex gap-4 flex-col xl:flex-row flex-1">
       {/* LEFT */}

@@ -41,7 +41,7 @@ const EventCalendar = () => {
     if (value instanceof Date) {
       router.push(`?date=${moment(value).format("YYYY-MM-DD")}`);
     }
-  }, [value]);
+  }, [value, router]);
 
   return <Calendar onChange={onChange} value={value} />;
 };

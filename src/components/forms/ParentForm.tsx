@@ -52,7 +52,7 @@ const ParentForm = ({
       close();
       router.refresh();
     }
-  }, [state]);
+  }, [state, router, close]);
 
   const onSubmit = handleSubmit((data) => {
     data.img = typeof image === "string" ? image : image?.secure_url;

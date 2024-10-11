@@ -1,16 +1,16 @@
+import { auth } from "@/auth";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { role } from "@/lib/utils";
 import { Parent, Prisma, Role, Student } from "@prisma/client";
 import Image from "next/image";
 
 type ParentList = Parent & { students: Student[] };
 
-const columns = [
+const getColumns = (role: Role) => [
   { header: "Info", accessor: "info" },
   {
     header: "Student Name",
@@ -24,7 +24,11 @@ const columns = [
     : []),
 ];
 
-const renderRow = (item: ParentList) => {
+const _renderRow = (
+  item: ParentList,
+  role: Role,
+  extra: Record<string, unknown>
+) => {
   return (
     <tr
       key={item.id}
@@ -61,6 +65,10 @@ const ParentListPage = async ({
   params: { slug: string };
   searchParams: { [key: string]: string | undefined };
 }) => {
+  const {
+    user: { role },
+  } = (await auth())!!;
+
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
   // URL PARAMS CONDITIONS
@@ -95,6 +103,8 @@ const ParentListPage = async ({
     prisma.parent.count({ where: whereQuery }),
   ]);
 
+  const renderRow = (item: ParentList) => _renderRow(item, role, {});
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -114,7 +124,7 @@ const ParentListPage = async ({
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table columns={getColumns(role)} renderRow={renderRow} data={data} />
       {/* PAGINATION */}
       <Pagination currentPage={p} totalItems={count} />
     </div>

@@ -1,17 +1,17 @@
+import { auth } from "@/auth";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { role } from "@/lib/utils";
 import { Class, Prisma, Role, Subject, Teacher } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 
 type TeacherList = Teacher & { subjects: Subject[]; classes: Class[] };
 
-const columns = [
+const getColumns = (role: Role) => [
   { header: "Info", accessor: "info" },
   {
     header: "Teacher ID",
@@ -31,7 +31,11 @@ const columns = [
     : []),
 ];
 
-const _renderRow = (item: TeacherList, extra: Record<string, unknown>) => {
+const _renderRow = (
+  item: TeacherList,
+  role: Role,
+  extra: Record<string, unknown>
+) => {
   return (
     <tr
       key={item.id}
@@ -86,6 +90,10 @@ const TeacherListPage = async ({
   params: { slug: string };
   searchParams: { [key: string]: string | undefined };
 }) => {
+  const {
+    user: { role },
+  } = (await auth())!!;
+
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
   // URL PARAMS CONDITIONS
@@ -136,7 +144,7 @@ const TeacherListPage = async ({
     });
   }
 
-  const renderRow = (item: TeacherList) => _renderRow(item, { subjects });
+  const renderRow = (item: TeacherList) => _renderRow(item, role, { subjects });
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -159,7 +167,7 @@ const TeacherListPage = async ({
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table columns={getColumns(role)} renderRow={renderRow} data={data} />
       {/* PAGINATION */}
       <Pagination currentPage={p} totalItems={count} />
     </div>

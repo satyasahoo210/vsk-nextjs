@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import Announcements from "@/components/Announcements";
-import BigCalendar from "@/components/BigCalendar";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormModal from "@/components/FormModal";
 import Performance from "@/components/Performance";

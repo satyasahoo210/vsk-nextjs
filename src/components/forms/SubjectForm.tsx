@@ -44,7 +44,7 @@ const SubjectForm = ({
       close();
       router.refresh();
     }
-  }, [state]);
+  }, [state, router, close]);
 
   const onSubmit = handleSubmit((data) => {
     formAction(data);

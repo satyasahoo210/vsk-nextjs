@@ -181,7 +181,7 @@ const FormModal = ({ data, type, id, table, extra }: FormData) => {
         close();
         router.refresh();
       }
-    }, [state]);
+    }, [state, router, close]);
 
     return (
       <form action={formAction} className="p-4 flex flex-col gap-4">
